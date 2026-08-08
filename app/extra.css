@@ -59,3 +59,4 @@
 @media(max-width:720px){.calculationDetailsHead{display:grid}.calculationDetailsHead>small{text-align:left}.calculationVariables{grid-template-columns:1fr}.calculationEquation code{overflow-wrap:anywhere}}
 .moneyGroup{border-top:1px solid #edf0ee;padding:6px 0}.moneyGroup>p{border-top:0!important;padding:0!important}.moneySubsections{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px}.moneySubsections small{display:inline-block;padding:3px 6px;border-radius:4px;background:#f1f4f2;color:#647068;font-size:8px;line-height:1.3}
 .rdGroupActions.singleAction{justify-content:flex-end}
+.moneySubsections{display:grid;gap:0;margin:6px 0 0 12px;border-left:2px solid #d9e2dc;padding-left:10px}.moneySubRow{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed #e2e7e3;font-size:8.5px;line-height:1.35}.moneySubRow:first-child{border-top:0}.moneySubRow span{color:#68736c}.moneySubRow b{white-space:nowrap;color:#35443c;font-size:8.5px}
