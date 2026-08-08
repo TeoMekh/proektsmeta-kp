@@ -17,7 +17,7 @@ const priceLevels: Record<string,{label:string;i2021:number;i2001:number;letter:
 
 type Method = "normative" | "unit" | "labor" | "fixed";
 type ObjectType = "kindergarten" | "residential" | "public" | "industrial";
-type Work = { id: string; group: "П" | "Р"; name: string; share: number; enabled: boolean };
+type Work = { id: string; group: "П" | "Р"; name: string; share: number; enabled: boolean; family?: string };
 type NormInterval = { label: string; min: number | null; max: number | null; unit: string; a: number | null; b: number | null };
 type NormObject = { key: string; table: string; category: string; number: string; name: string; intervals: NormInterval[]; source?: "848" | "sbcp"; baseLevel?: string; bimFactor?: number | null; bimRef?: string };
 type KtimRecord = { number: string; category: string; name: string; p: number; r: number };
@@ -31,13 +31,12 @@ const objects = {
 };
 
 const initialWorks: Work[] = [
-  { id:"p1",group:"П",name:"1. Пояснительная записка (включая требования ЭЭ)",share:2.5,enabled:true },
+  { id:"p1",group:"П",name:"1. Пояснительная записка",share:.5,enabled:true },
   { id:"p2",group:"П",name:"2. Схема планировочной организации земельного участка",share:4,enabled:true },
   { id:"p3",group:"П",name:"3. Объёмно-планировочные и архитектурные решения",share:17,enabled:true },
   { id:"p4",group:"П",name:"4. Конструктивные решения",share:16.3,enabled:true },
   { id:"p51",group:"П",name:"5.1. Система электроснабжения",share:3.9,enabled:true },
-  { id:"p52",group:"П",name:"5.2. Система водоснабжения",share:2.45,enabled:true },
-  { id:"p53",group:"П",name:"5.3. Система водоотведения",share:2.45,enabled:true },
+  { id:"p52",group:"П",name:"5.2–5.3. Системы водоснабжения и водоотведения",share:4.9,enabled:true },
   { id:"p54",group:"П",name:"5.4. Отопление, вентиляция, кондиционирование и тепловые сети",share:8.3,enabled:true },
   { id:"p55",group:"П",name:"5.5. Сети связи",share:2.9,enabled:true },
   { id:"p56",group:"П",name:"5.6. Система газоснабжения",share:0,enabled:false },
@@ -93,14 +92,43 @@ const familyByWork: Record<string,string> = {
   p1:"general",p2:"site",p3:"architecture",p4:"structure",p6:"technology",p51:"engineering",p52:"engineering",p53:"engineering",p54:"engineering",p55:"engineering",p56:"engineering",p57:"engineering",p7:"construction",p8:"environment",p9:"fire",p10:"safety",p11:"access",p12:"estimate",p13:"other",
   r_gp:"site",r_ar:"architecture",r_kj:"structure",r_km:"structure",r_kd:"structure",r_tx:"technology",r_ov:"engineering",r_vk:"engineering",r_nvk:"engineering",r_ts:"engineering",r_tm:"engineering",r_eom:"engineering",r_es:"engineering",r_en:"engineering",r_ss:"engineering",r_sks:"engineering",r_aov:"engineering",r_ak:"engineering",r_atx:"engineering",r_gsv:"engineering",r_gsn:"engineering",r_aps:"fire",r_soue:"fire",r_apt:"fire",r_pos:"construction",r_oos:"environment",r_odi:"access",r_tbe:"safety",r_ee:"safety",r_sm:"estimate",r_ad:"site",r_bg:"site"
 };
+const rGroups = [
+  {key:"site",name:"Генеральный план",marks:"ГП",members:["r_gp","r_ad","r_bg"]},
+  {key:"architecture",name:"Архитектурные решения",marks:"АР",members:["r_ar"]},
+  {key:"structure",name:"Конструктивные решения",marks:"КЖ / КМ / КД",members:["r_kj","r_km","r_kd"]},
+  {key:"engineering",name:"Отопление и вентиляция",marks:"ОВ / ТС",members:["r_ov","r_ts"]},
+  {key:"water",name:"Водоснабжение и водоотведение",marks:"ВК / НВК",members:["r_vk","r_nvk"]},
+  {key:"electric",name:"Электроснабжение",marks:"ЭОМ / ЭС / ЭН",members:["r_eom","r_es","r_en"]},
+  {key:"communications",name:"Сети связи и автоматизация",marks:"СС / СКС / АВТ",members:["r_ss","r_sks","r_aov","r_ak"]},
+  {key:"fire",name:"Противопожарные системы",marks:"АУПТ / АПС / СОУЭ",members:["r_apt","r_aps","r_soue"]},
+  {key:"technology",name:"Технологические решения",marks:"ТХ / АТХ",members:["r_tx","r_atx"]},
+  {key:"gas",name:"Газоснабжение",marks:"ГСВ / ГСН",members:["r_gsv","r_gsn"]},
+  {key:"environment",name:"Охрана окружающей среды",marks:"ООС",members:["r_oos"]},
+  {key:"estimate",name:"Сметная документация",marks:"СМ",members:["r_sm"]}
+];
 
 function sharesFromProfile(profile: ShareProfile, group: "П"|"Р") {
   const v = group === "П" ? profile.p : profile.r;
-  const map: Record<string,number> = group === "П" ? {
-    p1:v[0]+v[18],p2:v[1],p3:v[2],p4:v[3],p6:v[4],p54:v[5]+v[10]+v[11],p52:v[6]/2,p53:v[6]/2,p51:v[7],p55:v[8],p57:v[9],p56:v[12],p7:v[13],p8:v[14],p9:v[15],p11:v[16],p10:v[17],p12:v[19],p13:0
-  } : {
-    r_gp:v[0]+v[1],r_ar:v[2],r_kj:v[3],r_km:0,r_kd:0,r_tx:v[4],r_ov:v[5]+v[10]+v[11],r_vk:v[6],r_eom:v[7],r_ss:v[8],r_ak:v[9],r_gsv:v[12],r_pos:v[13],r_oos:v[14],r_aps:v[15],r_odi:v[16],r_tbe:v[17],r_ee:v[18],r_sm:v[19]
+  if (group === "П") {
+    const map: Record<string,number> = {p1:v[0],p2:v[1],p3:v[2],p4:v[3],p6:v[4],p54:v[5]+v[10]+v[11],p52:v[6],p53:0,p51:v[7],p55:v[8]+v[9],p57:0,p56:v[12],p7:v[13],p8:v[14],p9:v[15],p11:v[16],p10:v[17],p12:v[19],p13:0};
+    const solutionIds=["p3","p4","p6","p54","p52","p51","p55","p56"];
+    const solutionTotal=solutionIds.reduce((s,id)=>s+(map[id]??0),0);
+    if (v[18] && solutionTotal) solutionIds.forEach(id=>map[id]+=(v[18]*(map[id]??0)/solutionTotal));
+    return map;
+  }
+  const map: Record<string,number> = {
+    r_gp:v[0]+v[1],r_ar:v[2]+v[17],r_kj:v[3],r_km:0,r_kd:0,r_tx:v[4],r_atx:0,
+    r_ov:v[5]+v[10]+v[11],r_ts:0,r_vk:v[6],r_nvk:0,r_eom:v[7],r_es:0,r_en:0,
+    r_ss:v[8]+v[9],r_sks:0,r_aov:0,r_ak:0,r_gsv:v[12],r_gsn:0,r_oos:v[14],r_sm:v[19],
+    r_apt:0,r_aps:0,r_soue:0,r_pos:0,r_odi:0,r_tbe:0,r_ee:0
   };
+  const add=(id:string,value:number)=>map[id]=(map[id]??0)+value;
+  const pos=v[13]; add("r_gp",pos*.40);add("r_kj",pos*.30);add("r_ar",pos*.10);add("r_ov",pos*.05);add("r_vk",pos*.05);add("r_eom",pos*.05);add("r_ss",pos*.05);
+  const pb=v[15]; add("r_ar",pb*.20);add("r_kj",pb*.10);add("r_ov",pb*.20);add("r_vk",pb*.10);add("r_ss",pb*.15);add("r_apt",pb*.15);add("r_eom",pb*.10);
+  const odi=v[16]; add("r_ar",odi*.80);add("r_gp",odi*.20);
+  const solutionIds=["r_ar","r_kj","r_tx","r_ov","r_vk","r_eom","r_ss","r_gsv"];
+  const solutionTotal=solutionIds.reduce((s,id)=>s+(map[id]??0),0);
+  if (v[18] && solutionTotal) solutionIds.forEach(id=>map[id]+=(v[18]*(map[id]??0)/solutionTotal));
   return map;
 }
 
@@ -139,6 +167,9 @@ export default function Home() {
   const [distributionSourceR, setDistributionSourceR] = useState("848");
   const distributionSource = distributionSourceP === distributionSourceR ? distributionSourceP : "mixed";
   const [showDetails, setShowDetails] = useState(false);
+  const [showInternal, setShowInternal] = useState(false);
+  const [distributedGroups, setDistributedGroups] = useState<Record<string,boolean>>({});
+  const [floors, setFloors] = useState(9);
   const [normTable, setNormTable] = useState("3.8");
   const [normKey, setNormKey] = useState("3.8-1");
   const [hasBim, setHasBim] = useState(true);
@@ -153,7 +184,10 @@ export default function Home() {
   const selectedNorm = normObjects.find(n => n.key === normKey) ?? normObjects.find(n => n.table === normTable) ?? normObjects[0];
   const relativeTable = selectedNorm.source === "848" ? Number(selectedNorm.table.split(".")[1]) : 0;
   const shareProfiles = relativeShares848 as ShareProfile[];
-  const selectedShareProfile = shareProfiles.find(p => p.table === relativeTable && p.number === selectedNorm.number) ?? shareProfiles.find(p => p.table === relativeTable);
+  const isMultiResidential = selectedNorm.source === "848" && relativeTable === 1 && /многоквартир/i.test(selectedNorm.name);
+  const profileNumber = isMultiResidential ? (floors <= 9 ? "3.1" : "3.2") : selectedNorm.number;
+  const selectedShareProfile = shareProfiles.find(p => p.table === relativeTable && p.number === profileNumber) ?? shareProfiles.find(p => p.table === relativeTable);
+  const normativeRTargets = useMemo<Record<string,number>>(() => selectedNorm.source === "sbcp" ? sbcpShares : selectedShareProfile ? sharesFromProfile(selectedShareProfile,"Р") : {}, [selectedNorm.source, selectedShareProfile?.key]);
   const pricing = useMemo(() => {
     const direct=selectedNorm.intervals.find(i => (i.min == null || area >= i.min) && (i.max == null || area <= i.max));
     const price=(i:NormInterval,x:number)=>(i.a != null ? (i.a+(i.b??0)*x)*1000 : 0);
@@ -253,6 +287,12 @@ export default function Home() {
     if (group === "Р") setDistributionSourceR("manual");
     setWorks(list => list.map(w => w.id === id ? { ...w, share: Math.max(0, Math.min(100, value)) } : w));
   };
+  const addRWork = (family: string) => {
+    const name=window.prompt("Наименование или марка нового комплекта РД");
+    if (!name?.trim()) return;
+    setWorks(list => [...list,{id:`custom-${Date.now()}`,group:"Р",name:name.trim(),share:0,enabled:true,family}]);
+  };
+  const removeRWork = (id:string) => setWorks(list => list.filter(w => w.id !== id));
   const setAllWorks = (group: "П" | "Р", enabled: boolean) => setWorks(list => list.map(w => w.group === group ? { ...w, enabled } : w));
   const chooseDistributionSource = (group: "П" | "Р", value: string) => {
     group === "П" ? setDistributionSourceP(value) : setDistributionSourceR(value);
@@ -286,10 +326,23 @@ export default function Home() {
         {step === 2 && <div className="flowGrid"><section className="card flowCard">
           <div className="cardHead"><div><h2>Состав проектных работ</h2><p>Полный состав П по Постановлению № 87 и каталог основных марок Р</p></div></div>
           <div className="stageSwitches"><label className={stageP ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageP} onChange={e => setStageP(e.target.checked)}/><span className="stageBadge">П</span><div><strong>Проектная документация</strong><small>Объекты производственного и непроизводственного назначения</small></div><b>{Math.round(stagePFactor*100)}%</b></label><label className={stageR ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageR} onChange={e => setStageR(e.target.checked)}/><span className="stageBadge">Р</span><div><strong>Рабочая документация</strong><small>Каталог основных комплектов; расширяется под объект</small></div><b>{Math.round(stageRFactor*100)}%</b></label><div className={sketch ? "stageChoice on sketchChoice" : "stageChoice sketchChoice"}><label className="stageCheck"><input type="checkbox" checked={sketch} onChange={e => setSketch(e.target.checked)}/><span className="stageBadge pale">ЭП</span><span><strong>Эскизный проект</strong><small>Рассчитывается от суммы стоимости стадий П + Р</small></span></label><div className="sketchPercent"><input aria-label="Процент стоимости эскизного проекта" type="number" min="0" step="1" value={sketchPercent} disabled={!sketch} onChange={e => setSketchPercent(+e.target.value)}/><b>%</b></div><p>По умолчанию 20%. Для более точного определения стоимости рекомендуется отдельный расчёт по трудозатратам.</p></div></div>
-          <div className="distributionBar splitSources"><label><span>Источник процентов стадии П</span><select value={distributionSourceP} onChange={e => chooseDistributionSource("П", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>{isSbcp ? "СБЦП, таблица 41" : `№ 848/пр, приложение 1, таблица ${relativeTable}, профиль ${selectedShareProfile?.number ?? "—"}`}</small></label><label><span>Источник процентов стадии Р</span><select value={distributionSourceR} onChange={e => chooseDistributionSource("Р", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>{isSbcp ? "СБЦП, таблица 42" : `№ 848/пр, приложение 1, таблица ${relativeTable}, профиль ${selectedShareProfile?.number ?? "—"}`}</small></label></div>
-          <div className="shareProfileNote"><strong>{isSbcp ? "Профиль СБЦП" : `Профиль № 848/пр: ${selectedShareProfile?.name ?? "не найден"}`}</strong><span>{isSbcp ? "Проценты разделов взяты только из таблиц 41 и 42 СБЦП." : "Прочерки в нормативной таблице учтены как отсутствие соответствующего раздела или комплекта."}</span></div><div className="mappingLegend"><span className="f-architecture">АР</span><span className="f-structure">КР → КЖ / КМ / КД</span><span className="f-engineering">ИОС → ОВ / ВК / ЭОМ / СС / АВТ</span><span className="f-site">ПЗУ → ГП</span><span className="f-technology">ТХ</span></div><div className="workColumns">{(["П", "Р"] as const).map(group => { const selected=works.filter(w=>w.group===group&&w.enabled); const total=selected.reduce((s,w)=>s+w.share,0); return <div key={group}><div className="workHeader"><div><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{selected.length} выбрано</small></div><div className={Math.abs(total-100)<.01 ? "totalMarker ok" : "totalMarker bad"}>{total.toFixed(1)}%</div></div><div className="selectActions"><button onClick={()=>setAllWorks(group,true)}>Выбрать все</button><button onClick={()=>setAllWorks(group,false)}>Снять все</button></div>{works.filter(w => w.group === group).map(w => <label className={`workItem family-${familyByWork[w.id] ?? "other"}`} key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>})}</div>
-          <div className="mappingNote"><span>∑</span><p><strong>Проценты управляют стоимостью разделов.</strong> Значения редактируются независимо и больше не влияют друг на друга. Индикатор зелёный только при сумме ровно 100%; если сумма больше или меньше — он красный.</p></div>
-        </section><FlowSummary step={step} calc={calc} method={method} /></div>}
+          <div className="scopeOverview">
+            <div><span>Стоимость П</span><strong>{rub.format(calc.p)}</strong></div>
+            <div><span>Стоимость Р</span><strong>{rub.format(calc.r)}</strong></div>
+            <div><span>П + Р</span><strong>{rub.format(calc.p + calc.r)}</strong></div>
+            <button className="internalToggle" onClick={() => setShowInternal(v => !v)}>{showInternal ? "Скрыть внутреннюю раскладку" : "Внутренняя раскладка ПД и РД"}</button>
+          </div>
+          {isMultiResidential && <div className="floorProfile"><label><span>Этажность многоквартирного дома</span><input type="number" min="1" value={floors} onChange={e=>setFloors(Math.max(1,+e.target.value))}/></label><div><strong>{floors <= 9 ? "До 9 этажей включительно" : "10 этажей и более"}</strong><small>Автоматически выбран профиль {floors <= 9 ? "3.1" : "3.2"} таблицы 1 приложения 1 к № 848/пр. Газоснабжение показывается только при наличии процента в выбранной строке.</small></div></div>}
+          {showInternal && <div className="internalLayout">
+            <div className="distributionBar splitSources"><label><span>Источник процентов стадии П</span><select value={distributionSourceP} onChange={e => chooseDistributionSource("П", e.target.value)}><option value={isSbcp ? "sbcp" : "848"}>{isSbcp ? "СБЦП 81-2001-03 · таблица 41" : "№ 848/пр · приложение 1"}</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select></label><label><span>Источник процентов стадии Р</span><select value={distributionSourceR} onChange={e => chooseDistributionSource("Р", e.target.value)}><option value={isSbcp ? "sbcp" : "848"}>{isSbcp ? "СБЦП 81-2001-03 · таблица 42" : "№ 848/пр · приложение 1"}</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select></label></div>
+            <div className="shareProfileNote"><strong>{isSbcp ? "Профиль СБЦП" : `Профиль № 848/пр: ${selectedShareProfile?.name ?? "не найден"}`}</strong><span>{isSbcp ? "Проценты взяты из таблиц 41 и 42 СБЦП." : "Колонки № 848/пр скрыто переведены в разделы ПД по № 87 и группы РД. Прочерки отключают соответствующие позиции."}</span></div>
+            <div className="mappingLegend"><span className="f-site">ПЗУ ↔ ГП</span><span className="f-architecture">АР ↔ АР</span><span className="f-structure">КР ↔ КЖ / КМ / КД</span><span className="f-engineering">ИОС ↔ инженерные группы</span><span className="f-technology">ТХ ↔ ТХ</span></div>
+            <div className="workColumns mappedColumns">
+              <div><div className="workHeader"><div><strong>Разделы ПД по постановлению № 87</strong><small>Проценты строки П</small></div><div className={Math.abs(works.filter(w=>w.group==="П"&&w.enabled).reduce((s,w)=>s+w.share,0)-100)<.05 ? "totalMarker ok" : "totalMarker bad"}>{works.filter(w=>w.group==="П"&&w.enabled).reduce((s,w)=>s+w.share,0).toFixed(1)}%</div></div>{works.filter(w=>w.group==="П"&&w.enabled).map(w=><label className={`workItem family-${familyByWork[w.id] ?? "other"}`} key={w.id}><input type="checkbox" checked={w.enabled} onChange={()=>toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>
+              <div><div className="workHeader"><div><strong>Группы и комплекты РД</strong><small>Проценты строки Р с распределением ПОС, ПБ и ОДИ</small></div><div className={Math.abs(works.filter(w=>w.group==="Р"&&w.enabled).reduce((s,w)=>s+w.share,0)-100)<.05 ? "totalMarker ok" : "totalMarker bad"}>{works.filter(w=>w.group==="Р"&&w.enabled).reduce((s,w)=>s+w.share,0).toFixed(1)}%</div></div>{rGroups.map(g=>{const items=works.filter(w=>w.group==="Р"&&(g.members.includes(w.id)||w.family===g.key));const enabled=items.filter(w=>w.enabled);const total=enabled.reduce((s,w)=>s+w.share,0);const target=g.members.reduce((s,id)=>s+(normativeRTargets[id]??0),0);if(target<=0&&!items.some(w=>w.id.startsWith("custom-")))return null;const distributed=!!distributedGroups[g.key];return <section className={`rdGroup family-${g.key}`} key={g.key}><div className="rdGroupHead"><div><strong>{g.name}</strong><small>{g.marks}</small></div><b>{target.toFixed(2)}%</b></div><div className="rdMarks">{items.map(w=><div className="rdMark" key={w.id}><input type="checkbox" checked={w.enabled} onChange={()=>toggleWork(w.id)}/>{w.id.startsWith("custom-")?<input className="markName" value={w.name} onChange={e=>setWorks(list=>list.map(x=>x.id===w.id?{...x,name:e.target.value}:x))}/>:<span>{w.name}</span>}{distributed&&<div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div>}{w.id.startsWith("custom-")&&<button className="removeMark" onClick={()=>removeRWork(w.id)}>×</button>}</div>)}</div><div className="rdGroupActions"><label><input type="checkbox" checked={distributed} onChange={e=>setDistributedGroups(v=>({...v,[g.key]:e.target.checked}))}/> Распределить процент между комплектами</label><button onClick={()=>addRWork(g.key)}>+ Добавить комплект</button></div>{distributed&&<small className={Math.abs(items.filter(w=>w.enabled).reduce((s,w)=>s+w.share,0)-target)<.01?"distributionOk":"distributionBad"}>Сумма комплектов: {items.filter(w=>w.enabled).reduce((s,w)=>s+w.share,0).toFixed(2)}% · норматив группы {target.toFixed(2)}%</small>}</section>})}</div>
+            </div>
+            <div className="mappingNote"><span>i</span><p><strong>Разделы ПД и группы РД не вложены друг в друга.</strong> Одинаковый цвет показывает соответствие. ПОС, ПБ и ОДИ в РД отдельными группами не выводятся: их проценты сразу распределены по вашей таблице. Колонки № 848/пр доступны только в проверочном листе.</p></div>
+          </div>}        </section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
         {step === 3 && <div className="flowGrid"><section className="card flowCard"><div className="cardHead"><div><h2>Метод и параметры расчёта</h2><p>Настройте нормативную основу и коммерческие факторы</p></div></div><div className="methodTabs">{[["normative","Нормативные затраты"],["unit","Ставка за м²"],["labor","Трудозатраты"],["fixed","Фиксированная цена"]].map(([id,name]) => <button key={id} className={method === id ? "on" : ""} onClick={() => setMethod(id as Method)}>{name}</button>)}</div>{method === "normative" && <><div className="normative"><div className="docIcon">§</div><div><strong>Приказ Минстроя России № 848/пр</strong><p>Таблица 3.8, пункт 1 · база 01.01.2021</p></div><span className="valid">✓ Применим</span></div><div className="formula"><span>Базовая стоимость</span><code>1 076 200 + 1 563 × {area.toLocaleString("ru-RU")} = <strong>{rub.format(calc.base)}</strong></code></div><div className="fields topGap"><label><span>Индекс к 01.01.2021</span><input type="number" step=".01" value={index} onChange={e => setIndex(+e.target.value)}/><small>II квартал 2026 · № 20212-ИФ/09</small></label><label><span>Уровень цен</span><select><option>II квартал 2026</option><option>IV квартал 2025</option></select></label></div></>}{method === "unit" && <div className="methodPanel"><label><span>Коммерческая ставка</span><div className="inputUnit"><input type="number" value={unitRate} onChange={e => setUnitRate(+e.target.value)}/><b>₽/м²</b></div></label><div className="formula"><span>Расчёт</span><code>{area.toLocaleString("ru-RU")} м² × {rub.format(unitRate)} = <strong>{rub.format(calc.base)}</strong></code></div><p className="warning">Это внутренняя коммерческая ставка, а не норматив Минстроя.</p></div>}{method === "labor" && <div className="fields"><label><span>Трудоёмкость</span><div className="inputUnit"><input type="number" value={hours} onChange={e => setHours(+e.target.value)}/><b>чел.-ч</b></div></label><label><span>Средняя ставка</span><div className="inputUnit"><input type="number" value={hourRate} onChange={e => setHourRate(+e.target.value)}/><b>₽/ч</b></div></label></div>}{method === "fixed" && <div className="methodPanel"><label><span>Договорная цена</span><div className="inputUnit"><input type="number" value={fixedPrice} onChange={e => setFixedPrice(+e.target.value)}/><b>₽</b></div></label></div>}<div className="sectionTitle">Повторяемость и сложность</div><div className="fields"><label><span>Коэффициент повторной секции</span><select value={repeat} onChange={e => setRepeat(+e.target.value)} disabled={sections === 1}><option value="1">Уникальные — 1,00</option><option value="0.5">Частично повторные — 0,50</option><option value="0.3">Зеркальные — 0,30</option><option value="0.25">Повторные — 0,25</option></select><small>{sections} секц. · итоговый фактор {calc.repeatFactor.toFixed(3)}</small></label><label><span>Техническая сложность</span><select value={complexity} onChange={e => setComplexity(+e.target.value)}><option value="1">Обычная — 1,00</option><option value="1.15">Повышенная — 1,15</option><option value="1.3">Высокая — 1,30</option><option value="1.5">Уникальный объект — 1,50</option></select></label><label><span>Срочность</span><select value={urgency} onChange={e => setUrgency(+e.target.value)}><option value="1">Стандартная — 1,00</option><option value="1.1">Ускоренная — 1,10</option><option value="1.2">Срочная — 1,20</option></select></label><label><span>НДС</span><select value={vat} onChange={e => setVat(+e.target.value)}><option value="0">Без НДС</option><option value="5">5%</option><option value="7">7%</option><option value="20">20%</option></select></label></div></section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
