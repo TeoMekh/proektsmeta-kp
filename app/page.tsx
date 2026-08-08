@@ -180,6 +180,7 @@ export default function Home() {
   const [templateName, setTemplateName] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [savedOffers, setSavedOffers] = useState<SavedOffer[]>([]);
+  const [currentOfferTitle, setCurrentOfferTitle] = useState<string | null>(null);
   const [visibleRGroups, setVisibleRGroups] = useState<string[]>(rGroups.map(g=>g.key));
 
   const normObjects = useMemo(() => [
@@ -289,6 +290,7 @@ export default function Home() {
     localStorage.setItem("proektsmeta-draft", JSON.stringify(payload));
     const record:SavedOffer={id:`offer-${Date.now()}`,title:title||"Расчёт без названия",location,total:calc.total,date:new Date().toLocaleDateString("ru-RU"),payload};
     setSavedOffers(list=>{const next=[record,...list];localStorage.setItem("proektsmeta-offers",JSON.stringify(next));return next;});
+    setCurrentOfferTitle(record.title);
     setSaved(true); setTimeout(() => setSaved(false), 1800);
   };
   useEffect(() => {
@@ -300,8 +302,8 @@ export default function Home() {
     document.querySelectorAll<HTMLAnchorElement>('a[href^="/norms/"]').forEach(a => a.href = `/proektsmeta-kp${a.getAttribute("href")}`);
   }, [view]);
 
-  const loadOffer=(offer:SavedOffer)=>{const d=offer.payload||{};if(d.title!=null)setTitle(d.title);if(d.location!=null)setLocation(d.location);if(d.area!=null)setArea(d.area);if(d.method)setMethod(d.method);if(d.works)setWorks(d.works);if(d.normTable)setNormTable(d.normTable);if(d.normKey)setNormKey(d.normKey);if(d.stageP!=null)setStageP(d.stageP);if(d.stageR!=null)setStageR(d.stageR);if(d.sketch!=null)setSketch(d.sketch);if(d.sketchPercent!=null)setSketchPercent(d.sketchPercent);if(d.vat!=null)setVat(d.vat);setStep(4);setView("calculator")};
-  const newCalculation=()=>{setTitle("");setLocation("");setStep(1);setSaved(false);setView("calculator")};
+  const loadOffer=(offer:SavedOffer)=>{const d=offer.payload||{};if(d.title!=null)setTitle(d.title);if(d.location!=null)setLocation(d.location);if(d.area!=null)setArea(d.area);if(d.method)setMethod(d.method);if(d.works)setWorks(d.works);if(d.normTable)setNormTable(d.normTable);if(d.normKey)setNormKey(d.normKey);if(d.stageP!=null)setStageP(d.stageP);if(d.stageR!=null)setStageR(d.stageR);if(d.sketch!=null)setSketch(d.sketch);if(d.sketchPercent!=null)setSketchPercent(d.sketchPercent);if(d.vat!=null)setVat(d.vat);setCurrentOfferTitle(offer.title);setStep(4);setView("calculator")};
+  const newCalculation=()=>{setTitle("");setLocation("");setCurrentOfferTitle(null);setStep(1);setSaved(false);setView("calculator")};
   const deleteOffer=(id:string)=>setSavedOffers(list=>{const next=list.filter(x=>x.id!==id);localStorage.setItem("proektsmeta-offers",JSON.stringify(next));return next;});
   const persistTemplates=(next:WorkTemplate[])=>{setTemplates(next);localStorage.setItem("proektsmeta-templates",JSON.stringify(next));};
   const createTemplate=()=>{const name=templateName.trim();if(!name)return;const item={id:`tpl-${Date.now()}`,name,works:works.map(w=>({...w})),visibleRGroups:[...visibleRGroups],updatedAt:new Date().toLocaleDateString("ru-RU")};persistTemplates([...templates,item]);setSelectedTemplateId(item.id);setTemplateName("");setDistributionSourceP("manual");setDistributionSourceR("manual");};
@@ -345,7 +347,7 @@ export default function Home() {
   return <main className="shell">
     <aside className="sidebar"><div className="brand"><span className="brandMark">П</span><span>ПроектСмета</span></div><nav><button className={view==="offers"||view==="calculator"?"navItem active":"navItem"} onClick={()=>setView("offers")}><span>▤</span> Коммерческие предложения</button><div className="offerNavList"><button className="newOfferNav" onClick={newCalculation}>+ Новый расчёт</button>{savedOffers.map(o=><button key={o.id} title={o.title} onClick={()=>loadOffer(o)}><span>{o.title}</span><small>{o.date}</small></button>)}</div><button className={view==="norms"?"navItem active":"navItem"} onClick={()=>setView("norms")}><span>▦</span> Нормативы</button></nav><div className="sidebarBottom"><div className="storageNote"><strong>Локальное хранение</strong><small>Шаблоны и КП сохраняются в этом браузере</small></div></div></aside>
     <section className="workspace">
-      <header className="topbar"><div><span className="crumb">{view==="calculator"?"Расчёт":view==="offers"?"Коммерческие предложения":"Нормативы"}</span>{view==="calculator"&&<><span className="slash">/</span><span>Новый расчёт</span></>}</div>{view==="calculator"&&<div className="topActions"><button className="ghost" onClick={saveDraft}>{saved ? "✓ Сохранено" : "Сохранить расчёт"}</button></div>}</header>
+      <header className="topbar"><div><span className="crumb">{view==="calculator"?"Расчёт":view==="offers"?"Коммерческие предложения":"Нормативы"}</span>{view==="calculator"&&<><span className="slash">/</span><span>{currentOfferTitle||"Новый расчёт"}</span></>}</div>{view==="calculator"&&<div className="topActions"><button className="ghost" onClick={saveDraft}>{saved ? "✓ Сохранено" : "Сохранить расчёт"}</button></div>}</header>
       {view==="offers"&&<div className="content libraryPage"><div className="libraryHead"><div><div className="eyebrow">АРХИВ</div><h1>Коммерческие предложения</h1><p>Сохранённые расчёты на этом устройстве</p></div><button className="primary" onClick={()=>{setView("calculator");setStep(1)}}>+ Новый расчёт</button></div>{savedOffers.length?<div className="offerList">{savedOffers.map(o=><article className="card offerCard" key={o.id}><div><strong>{o.title}</strong><span>{o.location||"Адрес не указан"}</span><small>{o.date}</small></div><b>{rub.format(o.total)}</b><div><button className="ghost" onClick={()=>loadOffer(o)}>Открыть</button><button className="dangerLink" onClick={()=>deleteOffer(o.id)}>Удалить</button></div></article>)}</div>:<div className="card emptyState"><b>Пока нет сохранённых КП</b><p>Завершите расчёт и нажмите «Сохранить расчёт».</p></div>}</div>}
       {view==="norms"&&<div className="content libraryPage"><div className="libraryHead"><div><div className="eyebrow">НОРМАТИВНАЯ БАЗА</div><h1>Нормативы</h1><p>Документы, используемые калькулятором</p></div></div><div className="normLibrary">
         <a className="card normDoc" href="/norms/prikaz-848.rtf" download><span>848/пр</span><div><strong>Об установлении нормативных затрат на работы по подготовке проектной документации для строительства объектов жилищно-гражданского назначения</strong><small>Приказ Минстроя России от 28.11.2023 № 848/пр</small></div><b>Скачать</b></a>
