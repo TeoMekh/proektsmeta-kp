@@ -103,7 +103,9 @@ export default function Home() {
   const [durationR, setDurationR] = useState(110);
   const [advance, setAdvance] = useState(30);
   const [validity, setValidity] = useState(30);
-  const [distributionSource, setDistributionSource] = useState("848");
+  const [distributionSourceP, setDistributionSourceP] = useState("848");
+  const [distributionSourceR, setDistributionSourceR] = useState("848");
+  const distributionSource = distributionSourceP === distributionSourceR ? distributionSourceP : "mixed";
   const [showDetails, setShowDetails] = useState(false);
 
   const chooseType = (next: ObjectType) => {
@@ -137,14 +139,20 @@ export default function Home() {
 
   const toggleWork = (id: string) => setWorks(list => list.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
   const updateShare = (id: string, value: number) => {
-    setDistributionSource("manual");
+    const group = works.find(w => w.id === id)?.group;
+    if (group === "П") setDistributionSourceP("manual");
+    if (group === "Р") setDistributionSourceR("manual");
     setWorks(list => list.map(w => w.id === id ? { ...w, share: Math.max(0, Math.min(100, value)) } : w));
   };
   const setAllWorks = (group: "П" | "Р", enabled: boolean) => setWorks(list => list.map(w => w.group === group ? { ...w, enabled } : w));
-  const chooseDistributionSource = (value: string) => {
-    setDistributionSource(value);
-    if (value === "848") setWorks(initialWorks.map(w => ({ ...w })));
-    if (value === "sbcp") setWorks(list => list.map(w => ({ ...w, share: sbcpShares[w.id] ?? 0, enabled: (sbcpShares[w.id] ?? 0) > 0 })));
+  const chooseDistributionSource = (group: "П" | "Р", value: string) => {
+    group === "П" ? setDistributionSourceP(value) : setDistributionSourceR(value);
+    if (value === "848") setWorks(list => list.map(w => {
+      if (w.group !== group) return w;
+      const preset = initialWorks.find(p => p.id === w.id)!;
+      return { ...preset };
+    }));
+    if (value === "sbcp") setWorks(list => list.map(w => w.group === group ? { ...w, share: sbcpShares[w.id] ?? 0, enabled: (sbcpShares[w.id] ?? 0) > 0 } : w));
   };
   const next = () => setStep(s => Math.min(5, s + 1));
   const back = () => setStep(s => Math.max(1, s - 1));
@@ -167,7 +175,7 @@ export default function Home() {
         {step === 2 && <div className="flowGrid"><section className="card flowCard">
           <div className="cardHead"><div><h2>Состав проектных работ</h2><p>Полный состав П по Постановлению № 87 и каталог основных марок Р</p></div></div>
           <div className="stageSwitches"><label className={stageP ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageP} onChange={e => setStageP(e.target.checked)}/><span className="stageBadge">П</span><div><strong>Проектная документация</strong><small>Объекты производственного и непроизводственного назначения</small></div><b>60%</b></label><label className={stageR ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageR} onChange={e => setStageR(e.target.checked)}/><span className="stageBadge">Р</span><div><strong>Рабочая документация</strong><small>Каталог основных комплектов; расширяется под объект</small></div><b>40%</b></label><label className={sketch ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={sketch} onChange={e => setSketch(e.target.checked)}/><span className="stageBadge pale">ЭП</span><div><strong>Эскизный проект</strong><small>Дополнительная работа</small></div><b>20%</b></label></div>
-          <div className="distributionBar"><label><span>Источник распределения</span><select value={distributionSource} onChange={e => chooseDistributionSource(e.target.value)}><option value="848">№ 848/пр · приложение 1 · таблица 8</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select></label><p>{distributionSource === "848" ? "Загружены доли для детского сада из приложения 1, таблицы 8 приказа № 848/пр." : distributionSource === "sbcp" ? "Загружены рекомендуемые доли СБЦП: таблица 41 для П и таблица 42 для Р. Дополнительные позиции получили 0%." : "Каждый процент меняется независимо. Итог 100% отмечается зелёным, любое отклонение — красным."}</p></div>
+          <div className="distributionBar splitSources"><label><span>Источник процентов стадии П</span><select value={distributionSourceP} onChange={e => chooseDistributionSource("П", e.target.value)}><option value="848">№ 848/пр · приложение 1 · таблица 8</option><option value="sbcp">СБЦП · таблица 41</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>Меняет только разделы П</small></label><label><span>Источник процентов стадии Р</span><select value={distributionSourceR} onChange={e => chooseDistributionSource("Р", e.target.value)}><option value="848">№ 848/пр · приложение 1 · таблица 8</option><option value="sbcp">СБЦП · таблица 42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>Меняет только марки Р</small></label></div>
           <div className="workColumns">{(["П", "Р"] as const).map(group => { const selected=works.filter(w=>w.group===group&&w.enabled); const total=selected.reduce((s,w)=>s+w.share,0); return <div key={group}><div className="workHeader"><div><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{selected.length} выбрано</small></div><div className={Math.abs(total-100)<.01 ? "totalMarker ok" : "totalMarker bad"}>{total.toFixed(1)}%</div></div><div className="selectActions"><button onClick={()=>setAllWorks(group,true)}>Выбрать все</button><button onClick={()=>setAllWorks(group,false)}>Снять все</button></div>{works.filter(w => w.group === group).map(w => <label className="workItem" key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>})}</div>
           <div className="mappingNote"><span>∑</span><p><strong>Проценты управляют стоимостью разделов.</strong> Значения редактируются независимо и больше не влияют друг на друга. Индикатор зелёный только при сумме ровно 100%; если сумма больше или меньше — он красный.</p></div>
         </section><FlowSummary step={step} calc={calc} method={method} /></div>}

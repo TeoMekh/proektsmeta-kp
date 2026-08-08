@@ -5,6 +5,7 @@
 .quarterBar small{color:var(--muted);font-size:10px}
 .flowCard>.topGap{display:none}
 .distributionBar{display:grid;grid-template-columns:minmax(260px,.8fr) 1.2fr;gap:16px;align-items:end;margin-top:18px;padding:14px;background:#f4f7f5;border-radius:9px}
+.distributionBar.splitSources{grid-template-columns:1fr 1fr;align-items:start}.distributionBar.splitSources small{font-size:9px;color:var(--muted)}
 .distributionBar label{display:grid;gap:6px}.distributionBar label>span{font-size:11px;font-weight:700}.distributionBar select{border:1px solid #ccd4cf;background:#fff;padding:9px;border-radius:7px}.distributionBar p{margin:0;color:var(--muted);font-size:10px;line-height:1.45}
 .workHeader>div:first-child strong,.workHeader>div:first-child small{display:block}.workHeader>div:first-child small{margin-top:3px}
 .totalMarker{align-self:center;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:800}.totalMarker.ok{background:#dff1e5;color:#19623e}.totalMarker.bad{background:#fde5e2;color:#a33b31}
