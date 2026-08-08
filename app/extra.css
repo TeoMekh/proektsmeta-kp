@@ -36,3 +36,21 @@
 .normLibrary{align-items:stretch}.normDoc{min-height:126px}.normDoc strong{line-height:1.35}.normDoc small{margin-top:3px}.normDoc.info{min-height:105px}
 .proposalNumber{font-size:0}.proposalNumber small{font-size:10px}
 .offerNavRow{display:grid;grid-template-columns:minmax(0,1fr) 30px;align-items:center}.offerNavRow .offerNavOpen{min-width:0}.offerNavRow .offerNavDelete{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:6px;background:transparent;color:#91ad9e;font-size:15px;text-align:center}.offerNavRow .offerNavDelete:hover{background:#5a2d2d;color:#ffdada}
+.mobileMenuButton,.mobileMenuBackdrop{display:none}
+@media(max-width:720px){
+  .mobileMenuButton{display:grid;place-items:center;flex:none;width:40px;height:40px;border:1px solid #ccd4cf;border-radius:8px;background:#fff;color:#174d36;font-size:22px;cursor:pointer}
+  .topbar{gap:10px}.topbar>div:first-of-type{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .sidebar{display:flex!important;width:min(86vw,310px)!important;z-index:120;transform:translateX(-105%);transition:transform .22s ease;box-shadow:12px 0 30px rgba(0,0,0,.18)}
+  .sidebar.mobileOpen{transform:translateX(0)}
+  .mobileMenuBackdrop{display:block;position:fixed;inset:0;z-index:110;border:0;background:rgba(12,27,20,.48)}
+  .brand span:last-child,.navItem:not(.active),.navItem.active{font-size:inherit!important}
+  .workspace{margin-left:0!important;width:100%!important;min-width:0}
+  .internalLayout,.mappedColumns,.mappedColumns>div,.flowCard{min-width:0;max-width:100%}
+  .mappedColumns{grid-template-columns:minmax(0,1fr)!important}
+  .mappedColumns .workHeader,.rdGroupHead{flex-wrap:wrap;gap:9px}
+  .rdMarks{padding-left:12px}.rdMark{grid-template-columns:18px minmax(0,1fr) auto auto}
+  .rdMark span,.workItem span{min-width:0;overflow-wrap:anywhere}
+  .templateManager>div{display:grid!important;grid-template-columns:1fr 1fr;align-items:stretch!important}
+  .templateManager label,.templateManager>div:last-of-type input{grid-column:1/-1}
+  .distributionBar select,.templateManager select{min-width:0}
+}
