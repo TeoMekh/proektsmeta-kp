@@ -292,6 +292,10 @@ export default function Home() {
     try { setTemplates(JSON.parse(localStorage.getItem("proektsmeta-templates")||"[]")); } catch {}
     try { setSavedOffers(JSON.parse(localStorage.getItem("proektsmeta-offers")||"[]")); } catch {}
   }, []);
+  useEffect(() => {
+    if (!window.location.pathname.startsWith("/proektsmeta-kp/")) return;
+    document.querySelectorAll<HTMLAnchorElement>('a[href^="/norms/"]').forEach(a => a.href = `/proektsmeta-kp${a.getAttribute("href")}`);
+  }, [view]);
 
   const loadOffer=(offer:SavedOffer)=>{const d=offer.payload||{};if(d.title!=null)setTitle(d.title);if(d.location!=null)setLocation(d.location);if(d.area!=null)setArea(d.area);if(d.method)setMethod(d.method);if(d.works)setWorks(d.works);if(d.normTable)setNormTable(d.normTable);if(d.normKey)setNormKey(d.normKey);if(d.stageP!=null)setStageP(d.stageP);if(d.stageR!=null)setStageR(d.stageR);if(d.sketch!=null)setSketch(d.sketch);if(d.sketchPercent!=null)setSketchPercent(d.sketchPercent);if(d.vat!=null)setVat(d.vat);setStep(4);setView("calculator")};
   const deleteOffer=(id:string)=>setSavedOffers(list=>{const next=list.filter(x=>x.id!==id);localStorage.setItem("proektsmeta-offers",JSON.stringify(next));return next;});
