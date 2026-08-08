@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import "./extra.css";
 
 const rub = new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 });
 
@@ -16,20 +17,55 @@ const objects = {
 };
 
 const initialWorks: Work[] = [
-  { id: "pz", group: "П", name: "Пояснительная записка", share: 4, enabled: true },
-  { id: "pzu", group: "П", name: "Схема планировочной организации", share: 7, enabled: true },
-  { id: "ar", group: "П", name: "Архитектурные решения", share: 18, enabled: true },
-  { id: "kr", group: "П", name: "Конструктивные решения", share: 20, enabled: true },
-  { id: "ios", group: "П", name: "Инженерное оборудование и сети", share: 30, enabled: true },
-  { id: "pos", group: "П", name: "Проект организации строительства", share: 6, enabled: true },
-  { id: "otherp", group: "П", name: "Прочие разделы стадии П", share: 15, enabled: true },
-  { id: "gp", group: "Р", name: "ГП — генеральный план", share: 7, enabled: true },
-  { id: "arr", group: "Р", name: "АР — архитектурные решения", share: 18, enabled: true },
-  { id: "kj", group: "Р", name: "КЖ / КМ — конструкции", share: 22, enabled: true },
-  { id: "ov", group: "Р", name: "ОВ — отопление и вентиляция", share: 14, enabled: true },
-  { id: "vk", group: "Р", name: "ВК — водоснабжение и канализация", share: 11, enabled: true },
-  { id: "eom", group: "Р", name: "ЭОМ — электроснабжение", share: 13, enabled: true },
-  { id: "ss", group: "Р", name: "СС и автоматизация", share: 15, enabled: true },
+  { id:"p1",group:"П",name:"1. Пояснительная записка (включая требования ЭЭ)",share:2.5,enabled:true },
+  { id:"p2",group:"П",name:"2. Схема планировочной организации земельного участка",share:4,enabled:true },
+  { id:"p3",group:"П",name:"3. Объёмно-планировочные и архитектурные решения",share:17,enabled:true },
+  { id:"p4",group:"П",name:"4. Конструктивные решения",share:16.3,enabled:true },
+  { id:"p51",group:"П",name:"5.1. Система электроснабжения",share:3.9,enabled:true },
+  { id:"p52",group:"П",name:"5.2. Система водоснабжения",share:2.45,enabled:true },
+  { id:"p53",group:"П",name:"5.3. Система водоотведения",share:2.45,enabled:true },
+  { id:"p54",group:"П",name:"5.4. Отопление, вентиляция, кондиционирование и тепловые сети",share:8.3,enabled:true },
+  { id:"p55",group:"П",name:"5.5. Сети связи",share:2.9,enabled:true },
+  { id:"p56",group:"П",name:"5.6. Система газоснабжения",share:0,enabled:false },
+  { id:"p57",group:"П",name:"5.7. Автоматизация инженерных систем",share:2.1,enabled:true },
+  { id:"p6",group:"П",name:"6. Технологические решения",share:12,enabled:true },
+  { id:"p7",group:"П",name:"7. Проект организации строительства",share:6.1,enabled:true },
+  { id:"p8",group:"П",name:"8. Мероприятия по охране окружающей среды",share:6,enabled:true },
+  { id:"p9",group:"П",name:"9. Мероприятия по обеспечению пожарной безопасности",share:4.9,enabled:true },
+  { id:"p10",group:"П",name:"10. Требования к обеспечению безопасной эксплуатации",share:1,enabled:true },
+  { id:"p11",group:"П",name:"11. Мероприятия по обеспечению доступа инвалидов",share:1,enabled:true },
+  { id:"p12",group:"П",name:"12. Смета на строительство, реконструкцию, капремонт или снос",share:7.1,enabled:true },
+  { id:"p13",group:"П",name:"13. Иная документация, предусмотренная законодательством",share:0,enabled:false },
+  { id:"r_pz",group:"Р",name:"ПЗ — общие данные и пояснения",share:.5,enabled:true },
+  { id:"r_gp",group:"Р",name:"ГП — генеральный план",share:2.4,enabled:true },
+  { id:"r_ar",group:"Р",name:"АР — архитектурные решения",share:15.4,enabled:true },
+  { id:"r_kj",group:"Р",name:"КЖ — железобетонные конструкции",share:18,enabled:true },
+  { id:"r_km",group:"Р",name:"КМ — металлические конструкции",share:3.7,enabled:true },
+  { id:"r_kd",group:"Р",name:"КД — деревянные конструкции",share:2,enabled:false },
+  { id:"r_ov",group:"Р",name:"ОВ — отопление, вентиляция и кондиционирование",share:11.3,enabled:true },
+  { id:"r_vk",group:"Р",name:"ВК — внутренние водопровод и канализация",share:6.3,enabled:true },
+  { id:"r_nvk",group:"Р",name:"НВК — наружные сети водоснабжения и канализации",share:0,enabled:false },
+  { id:"r_ts",group:"Р",name:"ТС — тепловые сети",share:0,enabled:false },
+  { id:"r_tm",group:"Р",name:"ТМ — тепломеханические решения",share:0,enabled:false },
+  { id:"r_eom",group:"Р",name:"ЭОМ — силовое электрооборудование и освещение",share:5.3,enabled:true },
+  { id:"r_es",group:"Р",name:"ЭС — электроснабжение",share:0,enabled:false },
+  { id:"r_en",group:"Р",name:"ЭН — наружное электроосвещение",share:0,enabled:false },
+  { id:"r_ss",group:"Р",name:"СС — системы связи",share:3.9,enabled:true },
+  { id:"r_sks",group:"Р",name:"СКС — структурированная кабельная система",share:0,enabled:false },
+  { id:"r_aps",group:"Р",name:"АПС, СОУЭ, АПТ — противопожарные системы",share:3.9,enabled:true },
+  { id:"r_soue",group:"Р",name:"СОУЭ — оповещение и управление эвакуацией",share:0,enabled:false },
+  { id:"r_apt",group:"Р",name:"АПТ — автоматическое пожаротушение",share:2,enabled:false },
+  { id:"r_aov",group:"Р",name:"АОВ — автоматизация ОВ",share:0,enabled:false },
+  { id:"r_ak",group:"Р",name:"АК — комплексная автоматизация",share:3.1,enabled:true },
+  { id:"r_atx",group:"Р",name:"АТХ — автоматизация технологических процессов",share:2,enabled:false },
+  { id:"r_tx",group:"Р",name:"ТХ — технологические решения",share:17,enabled:true },
+  { id:"r_gsv",group:"Р",name:"ГСВ — внутреннее газоснабжение",share:1,enabled:false },
+  { id:"r_gsn",group:"Р",name:"ГСН — наружное газоснабжение",share:1,enabled:false },
+  { id:"r_ad",group:"Р",name:"АД — автомобильные дороги",share:0,enabled:false },
+  { id:"r_bg",group:"Р",name:"БГ — благоустройство и озеленение",share:0,enabled:false },
+  { id:"r_pos",group:"Р",name:"ПОС — проект организации строительства",share:1.1,enabled:true },
+  { id:"r_odi",group:"Р",name:"ОДИ — доступность для МГН",share:1,enabled:true },
+  { id:"r_sm",group:"Р",name:"СМ — сметная документация",share:7.1,enabled:true },
 ];
 
 export default function Home() {
@@ -46,6 +82,7 @@ export default function Home() {
   const [stageR, setStageR] = useState(true);
   const [sketch, setSketch] = useState(true);
   const [index, setIndex] = useState(1.68);
+  const [quarter, setQuarter] = useState("2026-q2");
   const [vat, setVat] = useState(5);
   const [unitRate, setUnitRate] = useState(4200);
   const [hours, setHours] = useState(5200);
@@ -55,23 +92,36 @@ export default function Home() {
   const [complexity, setComplexity] = useState(1);
   const [urgency, setUrgency] = useState(1);
   const [saved, setSaved] = useState(false);
+  const [customer, setCustomer] = useState("ООО «Атлас Девелопмент»");
+  const [contact, setContact] = useState("Румянцев Максим Андреевич");
+  const [durationP, setDurationP] = useState(75);
+  const [durationR, setDurationR] = useState(110);
+  const [advance, setAdvance] = useState(30);
+  const [validity, setValidity] = useState(30);
+  const [distributionSource, setDistributionSource] = useState("848");
 
   const chooseType = (next: ObjectType) => {
     const preset = objects[next]; setType(next); setArea(preset.area); setCapacity(preset.capacity); setMethod(preset.method);
     setTitle(next === "kindergarten" ? "Детское дошкольное учреждение на 150 мест" : preset.name);
     setSections(next === "residential" ? 4 : 1);
   };
+  const chooseQuarter = (value: string) => {
+    setQuarter(value);
+    setIndex(value === "2025-q4" ? 1.62 : 1.68);
+  };
 
   const calc = useMemo(() => {
     let base = method === "normative" ? 1_076_200 + 1_563 * area : method === "unit" ? area * unitRate : method === "labor" ? hours * hourRate : fixedPrice;
     const repeatFactor = sections > 1 ? (1 + (sections - 1) * repeat) / sections : 1;
     const adjusted = base * repeatFactor * complexity * urgency;
-    const p = stageP ? adjusted * .6 * (method === "normative" ? 1.14 * index : 1) : 0;
-    const r = stageR ? adjusted * .4 * (method === "normative" ? 1.16 * index : 1) : 0;
+    const pScope = works.filter(w => w.group === "П" && w.enabled).reduce((s,w) => s + w.share, 0) / 100;
+    const rScope = works.filter(w => w.group === "Р" && w.enabled).reduce((s,w) => s + w.share, 0) / 100;
+    const p = stageP ? adjusted * .6 * pScope * (method === "normative" ? 1.14 * index : 1) : 0;
+    const r = stageR ? adjusted * .4 * rScope * (method === "normative" ? 1.16 * index : 1) : 0;
     const ep = sketch ? base * .2 * (method === "normative" ? index : 1) : 0;
     const subtotal = p + r + ep; const tax = subtotal * vat / 100;
-    return { base, repeatFactor, adjusted, p, r, ep, subtotal, tax, total: subtotal + tax };
-  }, [area, complexity, fixedPrice, hourRate, hours, index, method, repeat, sections, sketch, stageP, stageR, unitRate, urgency, vat]);
+    return { base, repeatFactor, adjusted, pScope, rScope, p, r, ep, subtotal, tax, total: subtotal + tax };
+  }, [area, complexity, fixedPrice, hourRate, hours, index, method, repeat, sections, sketch, stageP, stageR, unitRate, urgency, vat, works]);
 
   const saveDraft = () => {
     localStorage.setItem("proektsmeta-draft", JSON.stringify({ type, title, location, area, capacity, sections, method, stageP, stageR, sketch, index, vat, repeat, complexity, urgency, works }));
@@ -80,7 +130,18 @@ export default function Home() {
   useEffect(() => { const draft = localStorage.getItem("proektsmeta-draft"); if (draft) setSaved(false); }, []);
 
   const toggleWork = (id: string) => setWorks(list => list.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w));
-  const next = () => setStep(s => Math.min(4, s + 1));
+  const updateShare = (id: string, value: number) => {
+    setDistributionSource("manual");
+    setWorks(list => {
+      const target = list.find(w => w.id === id); if (!target) return list;
+      const nextValue = Math.max(0, Math.min(100, value));
+      const others = list.filter(w => w.group === target.group && w.enabled && w.id !== id);
+      const otherSum = others.reduce((s,w) => s + w.share, 0);
+      return list.map(w => w.id === id ? { ...w, share: nextValue } : w.group === target.group && w.enabled && otherSum > 0 ? { ...w, share: w.share * (100 - nextValue) / otherSum } : w);
+    });
+  };
+  const setAllWorks = (group: "П" | "Р", enabled: boolean) => setWorks(list => list.map(w => w.group === group ? { ...w, enabled } : w));
+  const next = () => setStep(s => Math.min(5, s + 1));
   const back = () => setStep(s => Math.max(1, s - 1));
 
   return <main className="shell">
@@ -90,10 +151,17 @@ export default function Home() {
       <div className="content">
         <div className="titleRow"><div><div className="eyebrow">НОВЫЙ РАСЧЁТ</div><h1>{title || "Коммерческое предложение"}</h1><p>{location || "Укажите адрес объекта"}</p></div><span className="status">{step === 4 ? "Рассчитано" : "Черновик"}</span></div>
         <div className="steps">{["Объект", "Состав работ", "Расчёт", "Результат"].map((name, i) => <button key={name} className={step === i + 1 ? "step active" : step > i + 1 ? "step done" : "step"} onClick={() => setStep(i + 1)}><span>{step > i + 1 ? "✓" : i + 1}</span>{name}</button>)}</div>
+        {step === 3 && method === "normative" && <div className="quarterBar card"><label><span>Индекс к 01.01.2021</span><input type="number" step=".01" value={index} onChange={e => setIndex(+e.target.value)}/><small>{Math.abs(index - (quarter === "2025-q4" ? 1.62 : 1.68)) > .001 ? "Изменён вручную · " : ""}{quarter === "2025-q4" ? "IV квартал 2025 · норматив 1,62 · № 62725-ИФ/09" : "II квартал 2026 · норматив 1,68 · № 20212-ИФ/09"}</small></label><label><span>Уровень цен</span><select value={quarter} onChange={e => chooseQuarter(e.target.value)}><option value="2026-q2">II квартал 2026 — индекс 1,68</option><option value="2025-q4">IV квартал 2025 — индекс 1,62</option></select><small>Коэффициент меняется автоматически при выборе квартала</small></label></div>}
 
         {step === 1 && <div className="flowGrid"><section className="card flowCard"><div className="cardHead"><div><h2>Выберите тип объекта</h2><p>Выбор определит рекомендуемый способ расчёта</p></div></div><div className="objectGrid">{(Object.keys(objects) as ObjectType[]).map(key => { const o = objects[key]; return <button key={key} className={type === key ? "objectCard selected" : "objectCard"} onClick={() => chooseType(key)}><span>{o.icon}</span><strong>{o.name}</strong><small>{o.subtitle}</small>{type === key && <b>✓</b>}</button>})}</div><div className="sectionTitle">Основные сведения</div><div className="fields"><label><span>Наименование объекта</span><input value={title} onChange={e => setTitle(e.target.value)}/></label><label><span>Адрес / местоположение</span><input value={location} onChange={e => setLocation(e.target.value)}/></label><label><span>Общая площадь</span><div className="inputUnit"><input type="number" value={area} onChange={e => setArea(+e.target.value)}/><b>м²</b></div></label><label><span>Вместимость</span><div className="inputUnit"><input type="number" value={capacity} onChange={e => setCapacity(+e.target.value)}/><b>{type === "residential" ? "квартир" : "мест"}</b></div></label><label><span>Количество секций / корпусов</span><input type="number" min="1" value={sections} onChange={e => setSections(Math.max(1, +e.target.value))}/></label><label><span>Вид строительства</span><select><option>Новое строительство</option><option>Реконструкция</option><option>Капитальный ремонт</option></select></label></div></section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
-        {step === 2 && <div className="flowGrid"><section className="card flowCard"><div className="cardHead"><div><h2>Состав проектных работ</h2><p>Выберите стадии, разделы П и связанные марки Р</p></div></div><div className="stageSwitches"><label className={stageP ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageP} onChange={e => setStageP(e.target.checked)}/><span className="stageBadge">П</span><div><strong>Проектная документация</strong><small>Состав по Постановлению № 87</small></div><b>60%</b></label><label className={stageR ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageR} onChange={e => setStageR(e.target.checked)}/><span className="stageBadge">Р</span><div><strong>Рабочая документация</strong><small>Комплекты рабочих марок</small></div><b>40%</b></label><label className={sketch ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={sketch} onChange={e => setSketch(e.target.checked)}/><span className="stageBadge pale">ЭП</span><div><strong>Эскизный проект</strong><small>Дополнительная работа</small></div><b>20%</b></label></div><div className="workColumns">{(["П", "Р"] as const).map(group => <div key={group}><div className="workHeader"><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{works.filter(w => w.group === group && w.enabled).length} выбрано</small></div>{works.filter(w => w.group === group).map(w => <label className="workItem" key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><b>{w.share}%</b></label>)}</div>)}</div><div className="mappingNote"><span>↔</span><p><strong>Связи П → Р будут сохранены.</strong> Например, ИОС раскладывается на ОВ, ВК, ЭОМ, СС и автоматизацию. Проценты сейчас демонстрационные и позже будут заменены справочником организации.</p></div></section><FlowSummary step={step} calc={calc} method={method} /></div>}
+        {step === 2 && <div className="flowGrid"><section className="card flowCard">
+          <div className="cardHead"><div><h2>Состав проектных работ</h2><p>Полный состав П по Постановлению № 87 и каталог основных марок Р</p></div></div>
+          <div className="stageSwitches"><label className={stageP ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageP} onChange={e => setStageP(e.target.checked)}/><span className="stageBadge">П</span><div><strong>Проектная документация</strong><small>Объекты производственного и непроизводственного назначения</small></div><b>60%</b></label><label className={stageR ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageR} onChange={e => setStageR(e.target.checked)}/><span className="stageBadge">Р</span><div><strong>Рабочая документация</strong><small>Каталог основных комплектов; расширяется под объект</small></div><b>40%</b></label><label className={sketch ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={sketch} onChange={e => setSketch(e.target.checked)}/><span className="stageBadge pale">ЭП</span><div><strong>Эскизный проект</strong><small>Дополнительная работа</small></div><b>20%</b></label></div>
+          <div className="distributionBar"><label><span>Источник распределения</span><select value={distributionSource} onChange={e => setDistributionSource(e.target.value)}><option value="848">№ 848/пр · приложение 1 · таблица 8</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select></label><p>{distributionSource === "848" ? "Для здания детского сада применены относительные стоимости из таблицы 8 действующей редакции № 848/пр." : distributionSource === "sbcp" ? "СБЦП содержит рекомендуемые таблицы 41 и 42. Для действующего расчёта № 848/пр приоритетно его приложение 1." : "Проценты можно менять вручную; остаток автоматически перераспределяется."}</p></div>
+          <div className="workColumns">{(["П", "Р"] as const).map(group => { const selected=works.filter(w=>w.group===group&&w.enabled); const total=selected.reduce((s,w)=>s+w.share,0); return <div key={group}><div className="workHeader"><div><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{selected.length} выбрано</small></div><div className={Math.abs(total-100)<.01 ? "totalMarker ok" : "totalMarker bad"}>{total.toFixed(1)}%</div></div><div className="selectActions"><button onClick={()=>setAllWorks(group,true)}>Выбрать все</button><button onClick={()=>setAllWorks(group,false)}>Снять все</button></div>{works.filter(w => w.group === group).map(w => <label className="workItem" key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>})}</div>
+          <div className="mappingNote"><span>↔</span><p><strong>Проценты управляют стоимостью разделов.</strong> При ручном изменении одного процента остальные выбранные позиции автоматически пересчитываются, чтобы сумма оставалась 100%. Нулевые и неприменимые работы можно включить и распределить вручную.</p></div>
+        </section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
         {step === 3 && <div className="flowGrid"><section className="card flowCard"><div className="cardHead"><div><h2>Метод и параметры расчёта</h2><p>Настройте нормативную основу и коммерческие факторы</p></div></div><div className="methodTabs">{[["normative","Нормативные затраты"],["unit","Ставка за м²"],["labor","Трудозатраты"],["fixed","Фиксированная цена"]].map(([id,name]) => <button key={id} className={method === id ? "on" : ""} onClick={() => setMethod(id as Method)}>{name}</button>)}</div>{method === "normative" && <><div className="normative"><div className="docIcon">§</div><div><strong>Приказ Минстроя России № 848/пр</strong><p>Таблица 3.8, пункт 1 · база 01.01.2021</p></div><span className="valid">✓ Применим</span></div><div className="formula"><span>Базовая стоимость</span><code>1 076 200 + 1 563 × {area.toLocaleString("ru-RU")} = <strong>{rub.format(calc.base)}</strong></code></div><div className="fields topGap"><label><span>Индекс к 01.01.2021</span><input type="number" step=".01" value={index} onChange={e => setIndex(+e.target.value)}/><small>II квартал 2026 · № 20212-ИФ/09</small></label><label><span>Уровень цен</span><select><option>II квартал 2026</option><option>IV квартал 2025</option></select></label></div></>}{method === "unit" && <div className="methodPanel"><label><span>Коммерческая ставка</span><div className="inputUnit"><input type="number" value={unitRate} onChange={e => setUnitRate(+e.target.value)}/><b>₽/м²</b></div></label><div className="formula"><span>Расчёт</span><code>{area.toLocaleString("ru-RU")} м² × {rub.format(unitRate)} = <strong>{rub.format(calc.base)}</strong></code></div><p className="warning">Это внутренняя коммерческая ставка, а не норматив Минстроя.</p></div>}{method === "labor" && <div className="fields"><label><span>Трудоёмкость</span><div className="inputUnit"><input type="number" value={hours} onChange={e => setHours(+e.target.value)}/><b>чел.-ч</b></div></label><label><span>Средняя ставка</span><div className="inputUnit"><input type="number" value={hourRate} onChange={e => setHourRate(+e.target.value)}/><b>₽/ч</b></div></label></div>}{method === "fixed" && <div className="methodPanel"><label><span>Договорная цена</span><div className="inputUnit"><input type="number" value={fixedPrice} onChange={e => setFixedPrice(+e.target.value)}/><b>₽</b></div></label></div>}<div className="sectionTitle">Повторяемость и сложность</div><div className="fields"><label><span>Коэффициент повторной секции</span><select value={repeat} onChange={e => setRepeat(+e.target.value)} disabled={sections === 1}><option value="1">Уникальные — 1,00</option><option value="0.5">Частично повторные — 0,50</option><option value="0.3">Зеркальные — 0,30</option><option value="0.25">Повторные — 0,25</option></select><small>{sections} секц. · итоговый фактор {calc.repeatFactor.toFixed(3)}</small></label><label><span>Техническая сложность</span><select value={complexity} onChange={e => setComplexity(+e.target.value)}><option value="1">Обычная — 1,00</option><option value="1.15">Повышенная — 1,15</option><option value="1.3">Высокая — 1,30</option><option value="1.5">Уникальный объект — 1,50</option></select></label><label><span>Срочность</span><select value={urgency} onChange={e => setUrgency(+e.target.value)}><option value="1">Стандартная — 1,00</option><option value="1.1">Ускоренная — 1,10</option><option value="1.2">Срочная — 1,20</option></select></label><label><span>НДС</span><select value={vat} onChange={e => setVat(+e.target.value)}><option value="0">Без НДС</option><option value="5">5%</option><option value="7">7%</option><option value="20">20%</option></select></label></div></section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
