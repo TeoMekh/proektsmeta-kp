@@ -5,8 +5,15 @@ import "./extra.css";
 import normative848 from "./normative-848.json";
 import ktim848 from "./ktim-848.json";
 import normativeSbcp from "./normative-sbcp.json";
+import relativeShares848 from "./shares-848.json";
 
 const rub = new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 });
+const priceLevels: Record<string,{label:string;i2021:number;i2001:number;letter:string}> = {
+  "2026-q3":{label:"III квартал 2026",i2021:1.71,i2001:7.22,letter:"№ 45358-ИФ/09 от 23.07.2026"},
+  "2026-q2":{label:"II квартал 2026",i2021:1.68,i2001:7.10,letter:"№ 20212-ИФ/09 от 08.04.2026"},
+  "2026-q1":{label:"I квартал 2026",i2021:1.65,i2001:6.99,letter:"№ 3017-ИФ/09 от 26.01.2026"},
+  "2025-q4":{label:"IV квартал 2025",i2021:1.62,i2001:6.88,letter:"№ 62725-ИФ/09 от 20.10.2025"}
+};
 
 type Method = "normative" | "unit" | "labor" | "fixed";
 type ObjectType = "kindergarten" | "residential" | "public" | "industrial";
@@ -14,6 +21,7 @@ type Work = { id: string; group: "П" | "Р"; name: string; share: number; enabl
 type NormInterval = { label: string; min: number | null; max: number | null; unit: string; a: number | null; b: number | null };
 type NormObject = { key: string; table: string; category: string; number: string; name: string; intervals: NormInterval[]; source?: "848" | "sbcp"; baseLevel?: string; bimFactor?: number | null; bimRef?: string };
 type KtimRecord = { number: string; category: string; name: string; p: number; r: number };
+type ShareProfile = { key: string; table: number; number: string; name: string; p: number[]; r: number[] };
 
 const objects = {
   kindergarten: { icon: "Д", name: "Детский сад", subtitle: "Объект образования", area: 2900, capacity: 150, method: "normative" as Method },
@@ -42,7 +50,6 @@ const initialWorks: Work[] = [
   { id:"p11",group:"П",name:"11. Мероприятия по обеспечению доступа инвалидов",share:1,enabled:true },
   { id:"p12",group:"П",name:"12. Смета на строительство, реконструкцию, капремонт или снос",share:7.1,enabled:true },
   { id:"p13",group:"П",name:"13. Иная документация, предусмотренная законодательством",share:0,enabled:false },
-  { id:"r_pz",group:"Р",name:"ПЗ — общие данные и пояснения",share:.5,enabled:true },
   { id:"r_gp",group:"Р",name:"ГП — генеральный план",share:2.4,enabled:true },
   { id:"r_ar",group:"Р",name:"АР — архитектурные решения",share:15.4,enabled:true },
   { id:"r_kj",group:"Р",name:"КЖ — железобетонные конструкции",share:18,enabled:true },
@@ -72,12 +79,30 @@ const initialWorks: Work[] = [
   { id:"r_pos",group:"Р",name:"ПОС — проект организации строительства",share:1.1,enabled:true },
   { id:"r_odi",group:"Р",name:"ОДИ — доступность для МГН",share:1,enabled:true },
   { id:"r_sm",group:"Р",name:"СМ — сметная документация",share:7.1,enabled:true },
+  { id:"r_oos",group:"Р",name:"ООС — рабочие материалы по охране окружающей среды",share:0,enabled:false },
+  { id:"r_tbe",group:"Р",name:"ТБЭ — решения по безопасной эксплуатации",share:0,enabled:false },
+  { id:"r_ee",group:"Р",name:"ЭЭ — мероприятия по энергоэффективности",share:0,enabled:false },
 ];
 
 const sbcpShares: Record<string, number> = {
   p1:2,p2:4,p3:14,p4:15,p51:7,p52:4,p53:4,p54:12,p55:3,p56:2,p57:0,p6:5,p7:6,p8:7,p9:6,p10:0,p11:2,p12:7,p13:0,
   r_pz:0,r_gp:1,r_ar:22,r_kj:22,r_km:5,r_kd:0,r_ov:14,r_vk:6,r_nvk:0,r_ts:0,r_tm:0,r_eom:5,r_es:0,r_en:0,r_ss:3,r_sks:0,r_aps:4,r_apt:0,r_aov:0,r_ak:0,r_atx:0,r_tx:4,r_gsv:2,r_gsn:0,r_ad:0,r_bg:0,r_pos:0,r_odi:3,r_sm:9,
 };
+
+const familyByWork: Record<string,string> = {
+  p1:"general",p2:"site",p3:"architecture",p4:"structure",p6:"technology",p51:"engineering",p52:"engineering",p53:"engineering",p54:"engineering",p55:"engineering",p56:"engineering",p57:"engineering",p7:"construction",p8:"environment",p9:"fire",p10:"safety",p11:"access",p12:"estimate",p13:"other",
+  r_gp:"site",r_ar:"architecture",r_kj:"structure",r_km:"structure",r_kd:"structure",r_tx:"technology",r_ov:"engineering",r_vk:"engineering",r_nvk:"engineering",r_ts:"engineering",r_tm:"engineering",r_eom:"engineering",r_es:"engineering",r_en:"engineering",r_ss:"engineering",r_sks:"engineering",r_aov:"engineering",r_ak:"engineering",r_atx:"engineering",r_gsv:"engineering",r_gsn:"engineering",r_aps:"fire",r_soue:"fire",r_apt:"fire",r_pos:"construction",r_oos:"environment",r_odi:"access",r_tbe:"safety",r_ee:"safety",r_sm:"estimate",r_ad:"site",r_bg:"site"
+};
+
+function sharesFromProfile(profile: ShareProfile, group: "П"|"Р") {
+  const v = group === "П" ? profile.p : profile.r;
+  const map: Record<string,number> = group === "П" ? {
+    p1:v[0]+v[18],p2:v[1],p3:v[2],p4:v[3],p6:v[4],p54:v[5]+v[10]+v[11],p52:v[6]/2,p53:v[6]/2,p51:v[7],p55:v[8],p57:v[9],p56:v[12],p7:v[13],p8:v[14],p9:v[15],p11:v[16],p10:v[17],p12:v[19],p13:0
+  } : {
+    r_gp:v[0]+v[1],r_ar:v[2],r_kj:v[3],r_km:0,r_kd:0,r_tx:v[4],r_ov:v[5]+v[10]+v[11],r_vk:v[6],r_eom:v[7],r_ss:v[8],r_ak:v[9],r_gsv:v[12],r_pos:v[13],r_oos:v[14],r_aps:v[15],r_odi:v[16],r_tbe:v[17],r_ee:v[18],r_sm:v[19]
+  };
+  return map;
+}
 
 export default function Home() {
   const [step, setStep] = useState(1);
@@ -93,8 +118,8 @@ export default function Home() {
   const [stageR, setStageR] = useState(true);
   const [sketch, setSketch] = useState(true);
   const [sketchPercent, setSketchPercent] = useState(20);
-  const [index, setIndex] = useState(1.68);
-  const [quarter, setQuarter] = useState("2026-q2");
+  const [index, setIndex] = useState(1.71);
+  const [quarter, setQuarter] = useState("2026-q3");
   const [vat, setVat] = useState(5);
   const [unitRate, setUnitRate] = useState(4200);
   const [hours, setHours] = useState(5200);
@@ -117,7 +142,7 @@ export default function Home() {
   const [normTable, setNormTable] = useState("3.8");
   const [normKey, setNormKey] = useState("3.8-1");
   const [hasBim, setHasBim] = useState(true);
-  const [sbcpIndex, setSbcpIndex] = useState(1);
+  const [sbcpIndex, setSbcpIndex] = useState(7.22);
 
   const normObjects = useMemo(() => [
     ...(normative848 as NormObject[]).map(n => ({...n, source:"848" as const, baseLevel:"01.01.2021"})),
@@ -126,6 +151,9 @@ export default function Home() {
   const normCategories = useMemo(() => Array.from(new Map(normObjects.map(n => [n.table, n.category])).entries()), []);
   const categoryNorms = useMemo(() => normObjects.filter(n => n.table === normTable), [normTable]);
   const selectedNorm = normObjects.find(n => n.key === normKey) ?? normObjects.find(n => n.table === normTable) ?? normObjects[0];
+  const relativeTable = selectedNorm.source === "848" ? Number(selectedNorm.table.split(".")[1]) : 0;
+  const shareProfiles = relativeShares848 as ShareProfile[];
+  const selectedShareProfile = shareProfiles.find(p => p.table === relativeTable && p.number === selectedNorm.number) ?? shareProfiles.find(p => p.table === relativeTable);
   const pricing = useMemo(() => {
     const direct=selectedNorm.intervals.find(i => (i.min == null || area >= i.min) && (i.max == null || area <= i.max));
     const price=(i:NormInterval,x:number)=>(i.a != null ? (i.a+(i.b??0)*x)*1000 : 0);
@@ -155,18 +183,35 @@ export default function Home() {
   const stagePFactor = isSbcp ? .4 : .6;
   const stageRFactor = isSbcp ? .6 : .4;
   const activeIndex = isSbcp ? sbcpIndex : index;
+  const expectedIndex = quarter === "future" ? null : isSbcp ? priceLevels[quarter]?.i2001 : priceLevels[quarter]?.i2021;
+  const indexMismatch = expectedIndex != null && Math.abs(activeIndex - expectedIndex) > .001;
+
+  useEffect(() => {
+    if (isSbcp) {
+      setDistributionSourceP("sbcp"); setDistributionSourceR("sbcp");
+      setWorks(list => list.map(w => ({...w, share:sbcpShares[w.id] ?? 0, enabled:(sbcpShares[w.id] ?? 0) > 0})));
+      return;
+    }
+    if (!selectedShareProfile) return;
+    const pMap=sharesFromProfile(selectedShareProfile,"П"), rMap=sharesFromProfile(selectedShareProfile,"Р");
+    setDistributionSourceP("848"); setDistributionSourceR("848");
+    setWorks(list => list.map(w => {
+      const share=(w.group === "П" ? pMap : rMap)[w.id] ?? 0;
+      return {...w,share,enabled:share > 0};
+    }));
+  }, [isSbcp, normKey, selectedShareProfile?.key]);
 
   const chooseNormTable = (table: string) => {
     const first = normObjects.find(n => n.table === table); if (!first) return;
     setNormTable(table); setNormKey(first.key); setTitle(first.name);
-    const source = first.source === "sbcp" ? "manual" : first.key === "3.8-1" ? "848" : "manual";
+    const source = first.source === "sbcp" ? "sbcp" : "848";
     setDistributionSourceP(source); setDistributionSourceR(source);
     const interval = first.intervals[0]; if (interval?.min != null && interval?.max != null) setArea(Math.round((interval.min + interval.max) / 2)); else if (interval) setArea(interval.b ? Math.max(interval.min ?? 1, 1) : 1);
   };
   const chooseNormObject = (key: string) => {
     const item = normObjects.find(n => n.key === key); if (!item) return;
     setNormKey(key); setTitle(item.name);
-    const source = item.source === "sbcp" ? "manual" : key === "3.8-1" ? "848" : "manual";
+    const source = item.source === "sbcp" ? "sbcp" : "848";
     setDistributionSourceP(source); setDistributionSourceR(source);
     const interval = item.intervals[0]; if (interval?.min != null && interval?.max != null) setArea(Math.round((interval.min + interval.max) / 2)); else if (interval) setArea(interval.b ? Math.max(interval.min ?? 1, 1) : 1);
   };
@@ -178,7 +223,7 @@ export default function Home() {
   };
   const chooseQuarter = (value: string) => {
     setQuarter(value);
-    setIndex(value === "2025-q4" ? 1.62 : 1.68);
+    if (value !== "future" && priceLevels[value]) { setIndex(priceLevels[value].i2021); setSbcpIndex(priceLevels[value].i2001); }
   };
 
   const calc = useMemo(() => {
@@ -211,11 +256,10 @@ export default function Home() {
   const setAllWorks = (group: "П" | "Р", enabled: boolean) => setWorks(list => list.map(w => w.group === group ? { ...w, enabled } : w));
   const chooseDistributionSource = (group: "П" | "Р", value: string) => {
     group === "П" ? setDistributionSourceP(value) : setDistributionSourceR(value);
-    if (value === "848") setWorks(list => list.map(w => {
-      if (w.group !== group) return w;
-      const preset = initialWorks.find(p => p.id === w.id)!;
-      return { ...preset };
-    }));
+    if (value === "848" && selectedShareProfile) {
+      const map=sharesFromProfile(selectedShareProfile,group);
+      setWorks(list => list.map(w => w.group === group ? {...w,share:map[w.id] ?? 0,enabled:(map[w.id] ?? 0)>0} : w));
+    }
     if (value === "sbcp") setWorks(list => list.map(w => w.group === group ? { ...w, share: sbcpShares[w.id] ?? 0, enabled: (sbcpShares[w.id] ?? 0) > 0 } : w));
   };
   const next = () => setStep(s => Math.min(5, s + 1));
@@ -232,8 +276,8 @@ export default function Home() {
         {step === 1 && <section className="routeCard card"><div><span className="sourceBadge">Автоматический выбор нормативного маршрута</span><h2>{isSbcp ? "СБЦП 81-2001-03 → правила 707/пр → при ТИМ 854/пр → индекс" : "848/пр → правила 707/пр → приложение 2 к 848/пр → индекс"}</h2><p>{isSbcp ? "Объект отсутствует в действующей номенклатуре № 848/пр и найден в неотменённых таблицах 33–38 СБЦП." : "Объект содержится в таблицах 3.1–3.17 № 848/пр; исключённые таблицы СБЦП параллельно не применяются."}</p></div><label className={hasBim ? "bimToggle on" : "bimToggle"}><input type="checkbox" checked={hasBim} onChange={e => setHasBim(e.target.checked)}/><span><strong>Документация в форме информационной модели (ТИМ/BIM)</strong><small>{hasBim ? (isSbcp ? selectedNorm.bimFactor ? `КИМ ${selectedKtim.p.toFixed(2)}: ${selectedNorm.bimRef}` : `Автоматический КИМ не назначен: ${selectedNorm.bimRef}` : `КТИМ из приложения 2 к № 848/пр: П ${selectedKtim.p.toFixed(2)}, Р ${selectedKtim.r.toFixed(2)}`) : "Коэффициент ТИМ не применяется: П = 1,00; Р = 1,00"}</small></span></label><div className="legacyRoute"><strong>Выбранный источник</strong><span>{isSbcp ? `${selectedNorm.table}, пункт ${selectedNorm.number}; цены на 01.01.2001; П 40%, Р 60%.` : `№ 848/пр, таблица ${selectedNorm.table}, пункт ${selectedNorm.number}; цены на 01.01.2021.`}</span></div></section>}
         {step === 3 && method === "normative" && <section className="dynamicNorm card"><div><span className="sourceBadge">{selectedNorm.table} · пункт {selectedNorm.number}</span><h2>{selectedNorm.name}</h2><p>{pricing.mode} · нормативный интервал {selectedInterval?.label}</p></div><div className="dynamicFormula"><span>Нормативная цена в уровне {selectedNorm.baseLevel}</span><code>{pricing.formula} = <strong>{rub.format(calc.base)}</strong></code><small>Правила № 707/пр; параметры a и b — из {isSbcp ? "СБЦП 81-2001-03" : "№ 848/пр"}.</small></div><div className="ktimStrip"><span>{hasBim ? (isSbcp ? "КИМ по Методике № 854/пр" : "КТИМ из приложения 2 к № 848/пр") : "ТИМ не выбрана"}</span><strong>П = {effectiveKtim.p.toFixed(2)} · Р = {effectiveKtim.r.toFixed(2)}</strong><small>{hasBim ? selectedKtim.name : "Повышающие коэффициенты ТИМ не применяются"}</small></div></section>}
         {step === 4 && <button className="detailsTrigger" onClick={() => setShowDetails(true)}>ⓘ Подробно о расчёте</button>}
-        {showDetails && <div className="detailsOverlay" onClick={() => setShowDetails(false)}><section className="detailsModal card" onClick={e => e.stopPropagation()}><button className="detailsClose" onClick={() => setShowDetails(false)}>×</button><div className="eyebrow">ПРОВЕРОЧНЫЙ ЛИСТ</div><h2>Подробно о расчёте</h2><p className="detailsLead">Все множители приведены в порядке применения. Расчёт можно повторить вручную.</p><div className="auditFormula"><span>Базовая цена</span><strong>{pricing.formula} = {rub.format(calc.base)}</strong><small>{isSbcp ? "СБЦП 81-2001-03" : "№ 848/пр"}, {selectedNorm.table}, пункт {selectedNorm.number}; уровень цен {selectedNorm.baseLevel}</small></div><div className="auditRows"><div><b>Способ определения</b><span>{pricing.mode}</span><small>№ 707/пр, пункт 131, формулы 8.2–8.5</small></div><div><b>Площадь X</b><span>{area.toLocaleString("ru-RU")} {selectedInterval?.unit ?? "ед."}</span><small>Введено пользователем</small></div><div><b>Стадия П</b><span>{Math.round(stagePFactor*100)}% × КТИМ {selectedKtim.p.toFixed(2)} × индекс {activeIndex.toFixed(2)} × состав {(calc.pScope*100).toFixed(1)}%</span><small>{isSbcp ? selectedNorm.bimRef : `№ 848/пр, приложение 2, пункт ${selectedKtim.number}`}</small></div><div><b>Стадия Р</b><span>{Math.round(stageRFactor*100)}% × КТИМ {selectedKtim.r.toFixed(2)} × индекс {activeIndex.toFixed(2)} × состав {(calc.rScope*100).toFixed(1)}%</span><small>{isSbcp ? selectedNorm.bimRef : `№ 848/пр, приложение 2, пункт ${selectedKtim.number}`}</small></div><div><b>Распределение разделов</b><span>{distributionSource === "848" ? "№ 848/пр, приложение 1, таблица для выбранной группы" : distributionSource === "sbcp" ? "СБЦП 81-2001-03, таблицы 41 и 42" : "Ручное / организационное"}</span><small>Проценты показаны на шаге «Состав работ»</small></div><div><b>Индекс пересчёта</b><span>{activeIndex.toFixed(2)}{isSbcp ? " · введён вручную" : ` · ${quarter === "2025-q4" ? "IV квартал 2025" : "II квартал 2026"}`}</span><small>Переход от цен {selectedNorm.baseLevel}</small></div><div><b>Дополнительные нормативные условия</b><span>Не применены</span><small>Стеснённость и иные факторы должны включаться только после подтверждения основания</small></div></div><div className="methodSources"><h3>Нормативная основа</h3><a href="https://www.minstroyrf.gov.ru/docs/355755/" target="_blank" rel="noreferrer">Приказ Минстроя № 848/пр ↗</a><a href="https://minstroyrf.gov.ru/upload/iblock/0e3/Metodika-opredeleniya-stoimosti-rabot-po-podgotovke-proektnoy-dokumentatsii.pdf" target="_blank" rel="noreferrer">Методика № 707/пр ↗</a><a href="https://www.minstroyrf.gov.ru/docs/11900/" target="_blank" rel="noreferrer">СБЦП 81-2001-03 ↗</a><a href="https://base.garant.ru/400375659/" target="_blank" rel="noreferrer">Методика № 854/пр ↗</a><p>№ 707/пр устанавливает общий порядок определения стоимости; № 848/пр содержит нормативные затраты для жилищно-гражданских объектов. Коммерческие коэффициенты сложности и срочности в нормативном режиме не применяются.</p></div></section></div>}
-        {step === 3 && method === "normative" && <div className="quarterBar card">{isSbcp ? <><label><span>Индекс к уровню цен 01.01.2001</span><input type="number" step=".01" value={sbcpIndex} onChange={e => setSbcpIndex(+e.target.value)}/><small>Введите актуальный индекс Минстроя для проектных работ; значение 1,00 означает базовый уровень СБЦП.</small></label><label><span>Уровень базовых цен</span><input value="01.01.2001 · СБЦП 81-2001-03" readOnly/><small>Индекс 848/пр к 01.01.2021 здесь не используется.</small></label></> : <><label><span>Индекс к 01.01.2021</span><input type="number" step=".01" value={index} onChange={e => setIndex(+e.target.value)}/><small>{Math.abs(index - (quarter === "2025-q4" ? 1.62 : 1.68)) > .001 ? "Изменён вручную · " : ""}{quarter === "2025-q4" ? "IV квартал 2025 · норматив 1,62 · № 62725-ИФ/09" : "II квартал 2026 · норматив 1,68 · № 20212-ИФ/09"}</small></label><label><span>Уровень цен</span><select value={quarter} onChange={e => chooseQuarter(e.target.value)}><option value="2026-q2">II квартал 2026 — индекс 1,68</option><option value="2025-q4">IV квартал 2025 — индекс 1,62</option></select><small>Коэффициент меняется автоматически при выборе квартала</small></label></>}</div>}
+        {showDetails && <div className="detailsOverlay" onClick={() => setShowDetails(false)}><section className="detailsModal card" onClick={e => e.stopPropagation()}><button className="detailsClose" onClick={() => setShowDetails(false)}>×</button><div className="eyebrow">ПРОВЕРОЧНЫЙ ЛИСТ</div><h2>Подробно о расчёте</h2><p className="detailsLead">Все множители приведены в порядке применения. Расчёт можно повторить вручную.</p><div className="auditFormula"><span>Базовая цена</span><strong>{pricing.formula} = {rub.format(calc.base)}</strong><small>{isSbcp ? "СБЦП 81-2001-03" : "№ 848/пр"}, {selectedNorm.table}, пункт {selectedNorm.number}; уровень цен {selectedNorm.baseLevel}</small></div><div className="auditRows"><div><b>Способ определения</b><span>{pricing.mode}</span><small>№ 707/пр, пункт 131, формулы 8.2–8.5</small></div><div><b>Площадь X</b><span>{area.toLocaleString("ru-RU")} {selectedInterval?.unit ?? "ед."}</span><small>Введено пользователем</small></div><div><b>Стадия П</b><span>{Math.round(stagePFactor*100)}% × КТИМ {selectedKtim.p.toFixed(2)} × индекс {activeIndex.toFixed(2)} × состав {(calc.pScope*100).toFixed(1)}%</span><small>{isSbcp ? selectedNorm.bimRef : `№ 848/пр, приложение 2, пункт ${selectedKtim.number}`}</small></div><div><b>Стадия Р</b><span>{Math.round(stageRFactor*100)}% × КТИМ {selectedKtim.r.toFixed(2)} × индекс {activeIndex.toFixed(2)} × состав {(calc.rScope*100).toFixed(1)}%</span><small>{isSbcp ? selectedNorm.bimRef : `№ 848/пр, приложение 2, пункт ${selectedKtim.number}`}</small></div><div><b>Распределение разделов</b><span>{distributionSource === "848" ? "№ 848/пр, приложение 1, таблица для выбранной группы" : distributionSource === "sbcp" ? "СБЦП 81-2001-03, таблицы 41 и 42" : "Ручное / организационное"}</span><small>Проценты показаны на шаге «Состав работ»</small></div><div><b>Индекс пересчёта</b><span>{activeIndex.toFixed(2)}{isSbcp ? " · введён вручную" : ` · ${priceLevels[quarter]?.label ?? "Будущий квартал"}`}</span><small>Переход от цен {selectedNorm.baseLevel}</small></div><div><b>Дополнительные нормативные условия</b><span>Не применены</span><small>Стеснённость и иные факторы должны включаться только после подтверждения основания</small></div></div><div className="methodSources"><h3>Нормативная основа</h3><a href="https://www.minstroyrf.gov.ru/docs/355755/" target="_blank" rel="noreferrer">Приказ Минстроя № 848/пр ↗</a><a href="https://minstroyrf.gov.ru/upload/iblock/0e3/Metodika-opredeleniya-stoimosti-rabot-po-podgotovke-proektnoy-dokumentatsii.pdf" target="_blank" rel="noreferrer">Методика № 707/пр ↗</a><a href="https://www.minstroyrf.gov.ru/docs/11900/" target="_blank" rel="noreferrer">СБЦП 81-2001-03 ↗</a><a href="https://base.garant.ru/400375659/" target="_blank" rel="noreferrer">Методика № 854/пр ↗</a><p>№ 707/пр устанавливает общий порядок определения стоимости; № 848/пр содержит нормативные затраты для жилищно-гражданских объектов. Коммерческие коэффициенты сложности и срочности в нормативном режиме не применяются.</p></div></section></div>}
+        {step === 3 && method === "normative" && <div className="quarterBar card"><label><span>Уровень цен</span><select value={quarter} onChange={e => chooseQuarter(e.target.value)}>{Object.entries(priceLevels).map(([key,v])=><option key={key} value={key}>{v.label} — {isSbcp ? v.i2001.toFixed(2) : v.i2021.toFixed(2)}</option>)}<option value="future">Будущий квартал — индекс вручную</option></select><small>{quarter === "future" ? "Официальный индекс ещё не опубликован; значение задаётся вручную." : priceLevels[quarter]?.letter}</small></label><label className={indexMismatch ? "indexField mismatch" : "indexField"}><span>Индекс к {isSbcp ? "01.01.2001" : "01.01.2021"}</span><input type="number" step=".01" value={activeIndex} onChange={e => isSbcp ? setSbcpIndex(+e.target.value) : setIndex(+e.target.value)}/><small>{indexMismatch ? `Введено ${activeIndex.toFixed(2)}, но выбранному кварталу соответствует ${expectedIndex?.toFixed(2)}` : quarter === "future" ? "Проверьте значение после публикации очередного письма Минстроя." : `Значение соответствует ${priceLevels[quarter]?.label}`}</small><a href="https://minstroyrf.gov.ru/trades/tsenoobrazovanie/" target="_blank" rel="noreferrer">Источник: Минстрой России · Индексы изменения сметной стоимости ↗</a></label></div>}
         {step === 3 && method === "normative" && <div className="normBreakdown card"><div><strong>Как собрана нормативная цена</strong><span>Все применённые значения показаны отдельно</span></div><dl><div><dt>а = {selectedInterval?.a ?? 0} тыс. ₽; b = {selectedInterval?.b ?? 0}</dt><dd>{isSbcp ? "СБЦП 81-2001-03" : "Приказ № 848/пр"}, {selectedNorm.table}, пункт {selectedNorm.number}</dd></div><div><dt>X = {area.toLocaleString("ru-RU")} {selectedInterval?.unit}</dt><dd>Натуральный показатель, введённый на шаге 1</dd></div><div><dt>П = {Math.round(stagePFactor*100)}%; Р = {Math.round(stageRFactor*100)}%</dt><dd>{isSbcp ? "СБЦП, пункт 1.5" : "Распределение для выбранного норматива"}</dd></div><div><dt>{hasBim ? `ТИМ: П ${selectedKtim.p.toFixed(2)}; Р ${selectedKtim.r.toFixed(2)}` : "ТИМ не применяется"}</dt><dd>{isSbcp ? selectedNorm.bimRef : "№ 848/пр, приложение 2"}</dd></div><div><dt>Индекс = {activeIndex.toFixed(2)}</dt><dd>Пересчёт от уровня цен {selectedNorm.baseLevel}</dd></div></dl><p><strong>Методика № 707/пр</strong> задаёт общий порядок расчёта. Источник цены выбран автоматически: сначала № 848/пр, а для отсутствующих там объектов — только действующие таблицы 33–38 СБЦП.</p></div>}
         {step === 3 && method !== "normative" && <div className="commercialNotice card"><strong>Внутренние коэффициенты организации</strong><p>«Техническая сложность» и «Срочность» не являются коэффициентами приказа № 848/пр или Методики № 707/пр. Они применяются только в коммерческих методах и должны быть утверждены вашей организацией. В нормативном расчёте они отключены.</p></div>}
 
@@ -242,8 +286,8 @@ export default function Home() {
         {step === 2 && <div className="flowGrid"><section className="card flowCard">
           <div className="cardHead"><div><h2>Состав проектных работ</h2><p>Полный состав П по Постановлению № 87 и каталог основных марок Р</p></div></div>
           <div className="stageSwitches"><label className={stageP ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageP} onChange={e => setStageP(e.target.checked)}/><span className="stageBadge">П</span><div><strong>Проектная документация</strong><small>Объекты производственного и непроизводственного назначения</small></div><b>{Math.round(stagePFactor*100)}%</b></label><label className={stageR ? "stageChoice on" : "stageChoice"}><input type="checkbox" checked={stageR} onChange={e => setStageR(e.target.checked)}/><span className="stageBadge">Р</span><div><strong>Рабочая документация</strong><small>Каталог основных комплектов; расширяется под объект</small></div><b>{Math.round(stageRFactor*100)}%</b></label><div className={sketch ? "stageChoice on sketchChoice" : "stageChoice sketchChoice"}><label className="stageCheck"><input type="checkbox" checked={sketch} onChange={e => setSketch(e.target.checked)}/><span className="stageBadge pale">ЭП</span><span><strong>Эскизный проект</strong><small>Рассчитывается от суммы стоимости стадий П + Р</small></span></label><div className="sketchPercent"><input aria-label="Процент стоимости эскизного проекта" type="number" min="0" step="1" value={sketchPercent} disabled={!sketch} onChange={e => setSketchPercent(+e.target.value)}/><b>%</b></div><p>По умолчанию 20%. Для более точного определения стоимости рекомендуется отдельный расчёт по трудозатратам.</p></div></div>
-          <div className="distributionBar splitSources"><label><span>Источник процентов стадии П</span><select value={distributionSourceP} onChange={e => chooseDistributionSource("П", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>СБЦП 41 исключена для объектов, покрытых № 848/пр</small></label><label><span>Источник процентов стадии Р</span><select value={distributionSourceR} onChange={e => chooseDistributionSource("Р", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>СБЦП 42 исключена для объектов, покрытых № 848/пр</small></label></div>
-          <div className="workColumns">{(["П", "Р"] as const).map(group => { const selected=works.filter(w=>w.group===group&&w.enabled); const total=selected.reduce((s,w)=>s+w.share,0); return <div key={group}><div className="workHeader"><div><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{selected.length} выбрано</small></div><div className={Math.abs(total-100)<.01 ? "totalMarker ok" : "totalMarker bad"}>{total.toFixed(1)}%</div></div><div className="selectActions"><button onClick={()=>setAllWorks(group,true)}>Выбрать все</button><button onClick={()=>setAllWorks(group,false)}>Снять все</button></div>{works.filter(w => w.group === group).map(w => <label className="workItem" key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>})}</div>
+          <div className="distributionBar splitSources"><label><span>Источник процентов стадии П</span><select value={distributionSourceP} onChange={e => chooseDistributionSource("П", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>{isSbcp ? "СБЦП, таблица 41" : `№ 848/пр, приложение 1, таблица ${relativeTable}, профиль ${selectedShareProfile?.number ?? "—"}`}</small></label><label><span>Источник процентов стадии Р</span><select value={distributionSourceR} onChange={e => chooseDistributionSource("Р", e.target.value)}><option value="848">№ 848/пр · приложение 1</option><option value="sbcp">СБЦП 81-2001-03 · таблицы 41/42</option><option value="company">Шаблон организации</option><option value="manual">Ручное распределение</option></select><small>{isSbcp ? "СБЦП, таблица 42" : `№ 848/пр, приложение 1, таблица ${relativeTable}, профиль ${selectedShareProfile?.number ?? "—"}`}</small></label></div>
+          <div className="shareProfileNote"><strong>{isSbcp ? "Профиль СБЦП" : `Профиль № 848/пр: ${selectedShareProfile?.name ?? "не найден"}`}</strong><span>{isSbcp ? "Проценты разделов взяты только из таблиц 41 и 42 СБЦП." : "Прочерки в нормативной таблице учтены как отсутствие соответствующего раздела или комплекта."}</span></div><div className="mappingLegend"><span className="f-architecture">АР</span><span className="f-structure">КР → КЖ / КМ / КД</span><span className="f-engineering">ИОС → ОВ / ВК / ЭОМ / СС / АВТ</span><span className="f-site">ПЗУ → ГП</span><span className="f-technology">ТХ</span></div><div className="workColumns">{(["П", "Р"] as const).map(group => { const selected=works.filter(w=>w.group===group&&w.enabled); const total=selected.reduce((s,w)=>s+w.share,0); return <div key={group}><div className="workHeader"><div><strong>{group === "П" ? "Разделы стадии П" : "Марки стадии Р"}</strong><small>{selected.length} выбрано</small></div><div className={Math.abs(total-100)<.01 ? "totalMarker ok" : "totalMarker bad"}>{total.toFixed(1)}%</div></div><div className="selectActions"><button onClick={()=>setAllWorks(group,true)}>Выбрать все</button><button onClick={()=>setAllWorks(group,false)}>Снять все</button></div>{works.filter(w => w.group === group).map(w => <label className={`workItem family-${familyByWork[w.id] ?? "other"}`} key={w.id}><input type="checkbox" checked={w.enabled} onChange={() => toggleWork(w.id)}/><span>{w.name}</span><div className="percentEdit"><input type="number" step=".1" value={Number(w.share.toFixed(2))} disabled={!w.enabled} onChange={e=>updateShare(w.id,+e.target.value)}/><b>%</b></div></label>)}</div>})}</div>
           <div className="mappingNote"><span>∑</span><p><strong>Проценты управляют стоимостью разделов.</strong> Значения редактируются независимо и больше не влияют друг на друга. Индикатор зелёный только при сумме ровно 100%; если сумма больше или меньше — он красный.</p></div>
         </section><FlowSummary step={step} calc={calc} method={method} /></div>}
 
